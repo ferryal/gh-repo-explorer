@@ -2,6 +2,8 @@ import React from "react";
 import { GitHubRepository, GitHubUser } from "../types/github";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
+import { UserContributions } from "./UserContributions";
+import { useUserContributionStats } from "../hooks/useGitHubQueries";
 import {
   Star,
   GitFork,
@@ -26,6 +28,13 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
   isLoading = false,
   error,
 }) => {
+  // Fetch contribution statistics
+  const {
+    data: contributionStats,
+    isLoading: isLoadingContributions,
+    error: contributionsError,
+  } = useUserContributionStats(user.login, true);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -53,7 +62,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
       {/* User Header */}
       <Card className="mb-6">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
             <div className="flex items-center space-x-4">
               <img
                 src={user.avatar_url}
@@ -88,7 +97,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
               variant="outline"
               onClick={onBackToUsers}
               onKeyDown={handleBackKeyDown}
-              className="shrink-0"
+              className="w-full sm:w-auto"
             >
               <ChevronUp className="h-4 w-4 mr-2" />
               Back to Users
@@ -96,6 +105,43 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
           </div>
         </CardHeader>
       </Card>
+
+      {/* User Contributions Section */}
+      {contributionStats && (
+        <UserContributions
+          stats={contributionStats}
+          isLoading={isLoadingContributions}
+          error={contributionsError?.message || null}
+        />
+      )}
+
+      {/* Show loading state for contributions if no data yet */}
+      {!contributionStats && isLoadingContributions && (
+        <UserContributions
+          stats={{
+            totalCommits: 0,
+            totalPullRequests: 0,
+            totalIssues: 0,
+            totalRepositories: 0,
+            recentActivity: [],
+          }}
+          isLoading={true}
+        />
+      )}
+
+      {/* Show error state for contributions */}
+      {!contributionStats && !isLoadingContributions && contributionsError && (
+        <UserContributions
+          stats={{
+            totalCommits: 0,
+            totalPullRequests: 0,
+            totalIssues: 0,
+            totalRepositories: 0,
+            recentActivity: [],
+          }}
+          error={contributionsError.message}
+        />
+      )}
 
       {/* Repositories */}
       {isLoading && (

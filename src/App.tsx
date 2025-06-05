@@ -28,6 +28,7 @@ function GitHubExplorer() {
     data: users = [],
     isLoading: isSearchingUsers,
     error: searchError,
+    isFetched,
   } = useSearchUsers(searchQuery);
 
   // Get full user details when a user is selected
@@ -58,6 +59,21 @@ function GitHubExplorer() {
 
   const displayUser = fullUserData || selectedUser;
 
+  // Determine if we should show "no users found" message
+  const shouldShowNoUsersMessage =
+    !isSearchingUsers &&
+    isFetched &&
+    searchQuery.trim().length > 0 &&
+    users.length === 0 &&
+    !searchError;
+
+  // Prepare error message for UserList
+  const userListError =
+    searchError?.message ||
+    (shouldShowNoUsersMessage
+      ? `No users found for "${searchQuery}". Try a different username or check the spelling.`
+      : null);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -82,7 +98,7 @@ function GitHubExplorer() {
               users={users}
               onUserSelect={handleUserSelect}
               isLoading={isSearchingUsers}
-              error={searchError?.message || null}
+              error={userListError}
             />
           </div>
         ) : (

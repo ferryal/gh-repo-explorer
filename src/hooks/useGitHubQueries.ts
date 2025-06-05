@@ -24,7 +24,7 @@ export const useUserRepositories = (
   return useQuery({
     queryKey: ["repositories", username],
     queryFn: () => githubApi.getUserRepositories(username),
-    enabled: enabled && username.length > 0,
+    enabled: enabled && !!username && username.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error) => {
@@ -40,7 +40,7 @@ export const useUser = (username: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: ["user", username],
     queryFn: () => githubApi.getUser(username),
-    enabled: enabled && username.length > 0,
+    enabled: enabled && !!username && username.length > 0,
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
     retry: (failureCount, error) => {
@@ -49,6 +49,25 @@ export const useUser = (username: string, enabled: boolean = true) => {
         (error.status === 403 || error.status === 404)
       ) {
         return false; // Don't retry rate limit or not found errors
+      }
+      return failureCount < 3;
+    },
+  });
+};
+
+export const useUserContributionStats = (
+  username: string,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: ["contributions", username],
+    queryFn: () => githubApi.getUserContributionStats(username),
+    enabled: enabled && !!username && username.length > 0,
+    staleTime: 15 * 60 * 1000, // 15 minutes (contributions don't change as frequently)
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    retry: (failureCount, error) => {
+      if (error instanceof GitHubApiError && error.status === 403) {
+        return false; // Don't retry rate limit errors
       }
       return failureCount < 3;
     },

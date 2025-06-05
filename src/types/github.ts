@@ -9,6 +9,28 @@ export interface GitHubUser {
   public_repos?: number;
   followers?: number;
   following?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface GitHubEvent {
+  id: string;
+  type: string;
+  created_at: string;
+  repo?: {
+    id: number;
+    name: string;
+    url: string;
+  };
+  payload: any;
+}
+
+export interface GitHubContributionStats {
+  totalCommits: number;
+  totalPullRequests: number;
+  totalIssues: number;
+  totalRepositories: number;
+  recentActivity: GitHubEvent[];
 }
 
 export interface GitHubRepository {
