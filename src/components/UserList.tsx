@@ -61,7 +61,7 @@ export const UserList: React.FC<UserListProps> = ({
         <div className="text-sm text-muted-foreground px-4 py-2 border-b">
           Showing users for your search
         </div>
-        <div className="max-h-80 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto">
           {users.map((user) => (
             <Button
               key={user.id}

@@ -101,21 +101,6 @@ describe("App Integration Tests", () => {
   it("completes full user flow: search -> select user -> view repositories -> back to search", async () => {
     const user = userEvent.setup();
 
-    // Mock API responses
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSearchResponse,
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockUserResponse,
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockRepositoriesResponse,
-      } as Response);
-
     render(
       <TestWrapper>
         <App />
@@ -133,6 +118,13 @@ describe("App Integration Tests", () => {
     const searchButton = screen.getByRole("button", { name: /search/i });
 
     await user.type(searchInput, "testuser");
+
+    // Mock search users API call
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockSearchResponse,
+    } as Response);
+
     await user.click(searchButton);
 
     // Wait for users to load and verify search results
@@ -144,8 +136,60 @@ describe("App Integration Tests", () => {
       screen.getByText("Showing users for your search")
     ).toBeInTheDocument();
 
-    // Select a user
+    // Clear previous mocks and reset
+    mockFetch.mockClear();
+
+    // Select a user - this will trigger multiple API calls
     const userButton = screen.getByRole("button", { name: /testuser/i });
+
+    // Mock all API calls in sequence using mockImplementation
+    let callCount = 0;
+    mockFetch.mockImplementation((url) => {
+      callCount++;
+      const urlString = url.toString();
+
+      // 1. getUser API call: https://api.github.com/users/testuser
+      if (urlString === "https://api.github.com/users/testuser") {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockUserResponse,
+        } as Response);
+      }
+
+      // 2. getUserRepositories API call (first page): https://api.github.com/users/testuser/repos?sort=updated&direction=desc&per_page=100&page=1
+      if (
+        urlString.includes("/users/testuser/repos") &&
+        urlString.includes("page=1")
+      ) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockRepositoriesResponse,
+        } as Response);
+      }
+
+      // 3. getUserRepositories API call (second page): https://api.github.com/users/testuser/repos?sort=updated&direction=desc&per_page=100&page=2
+      if (
+        urlString.includes("/users/testuser/repos") &&
+        urlString.includes("page=2")
+      ) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [],
+        } as Response);
+      }
+
+      // 4. getUserEvents API call: https://api.github.com/users/testuser/events/public?per_page=100
+      if (urlString.includes("/users/testuser/events/public")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [],
+        } as Response);
+      }
+
+      // Fallback for any unexpected calls
+      return Promise.reject(new Error(`Unmocked call to: ${urlString}`));
+    });
+
     await user.click(userButton);
 
     // Wait for repositories to load
